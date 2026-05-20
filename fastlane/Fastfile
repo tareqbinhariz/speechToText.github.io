@@ -1,0 +1,16 @@
+default_platform(:web)
+
+platform :web do
+  desc "Deploy Flutter Web to GitHub Pages"
+  lane :deploy do
+    sh "flutter build web --release --wasm --pwa-strategy=none"
+    sh "git checkout gh-pages"
+    sh "git rm -rf ."
+    sh "xcopy build\\web\\* . /E /I /Y" # Windows
+    # For Mac/Linux: sh "cp -R build/web/* ."
+    sh "git add ."
+    sh "git commit -m 'Update Flutter web app'"
+    sh "git push origin gh-pages --force"
+    sh "git checkout master"
+  end
+end
