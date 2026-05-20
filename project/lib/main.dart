@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'package:get/get.dart';
+import 'package:speech_to_text_alsady_web/features/home/controllers/home_controller.dart';
+import 'package:speech_to_text_alsady_web/features/home/views/home_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  Get.put(HomeController(), permanent: true);
   runApp(const MyApp());
 }
 
@@ -19,7 +22,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         primarySwatch: Colors.blue,
       ),
-      home: const HomeScreen(),
+      home: const HomeView(),
     );
   }
 }

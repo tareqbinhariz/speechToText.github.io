@@ -24,9 +24,8 @@ class _WaveformAnimationState extends State<WaveformAnimation>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1200),
     );
-
     if (widget.isRecording) {
       _controller.repeat();
     }
@@ -71,6 +70,8 @@ class _WaveformAnimationState extends State<WaveformAnimation>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
+        final pulse = _controller.value;
+
         return SizedBox(
           width: 200,
           height: 140,
@@ -80,16 +81,16 @@ class _WaveformAnimationState extends State<WaveformAnimation>
               // Concentric pulsing rings
               ...List.generate(3, (index) {
                 final double delay = index * 0.33;
-                double progress = _controller.value + delay;
+                double progress = pulse + delay;
                 if (progress > 1.0) progress -= 1.0;
 
                 final double scale = 0.4 + (progress * 0.6);
-                final double opacity = math.max(0.0, 1.0 - progress);
+                final double opacity = math.max(0.0, 1.0 - progress) * 0.6;
 
                 return Transform.scale(
                   scale: scale,
                   child: Opacity(
-                    opacity: opacity * 0.6,
+                    opacity: opacity,
                     child: Container(
                       width: 150,
                       height: 150,
@@ -112,7 +113,7 @@ class _WaveformAnimationState extends State<WaveformAnimation>
                 );
               }),
 
-              // Bouncing wave bars at the bottom/middle
+              // Animated waveform bars
               Positioned(
                 bottom: 10,
                 child: SizedBox(
@@ -122,12 +123,13 @@ class _WaveformAnimationState extends State<WaveformAnimation>
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: List.generate(9, (index) {
-                      // Calculate height based on sine waves with index offsets
-                      final double phase = _controller.value * 2 * math.pi;
-                      final double indexFactor = (index - 4).abs() * 0.4;
+                      final double phase = pulse * 2 * math.pi;
                       final double val = math.sin(phase - (index * 0.5));
-                      final double heightMultiplier = (math.cos(indexFactor) + 1.2) * 12;
-                      final double height = 4 + (val.abs() * heightMultiplier);
+                      final double indexFactor = (index - 4).abs() * 0.4;
+                      final double heightMultiplier =
+                          (math.cos(indexFactor) + 1.2) * 12;
+                      final double height =
+                          4 + (val.abs() * heightMultiplier);
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 50),
