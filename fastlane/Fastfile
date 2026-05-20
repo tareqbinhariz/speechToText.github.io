@@ -11,6 +11,6 @@ platform :web do
     sh "git add ."
     sh "git commit -m 'Update Flutter web app'"
     sh "git push origin gh-pages --force"
-    sh "git checkout master"
+    sh "git checkout main"
   end
 end

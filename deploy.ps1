@@ -210,7 +210,7 @@ try {
 # ----------------------------------------------------------------------
 Write-Host "Pushing unified assets to GitHub (speechToText.github.io)..." -ForegroundColor Yellow
 try {
-    git push origin master
+    git push origin main
     Write-Host "SUCCESS! Your site is live and your source code is backed up!" -ForegroundColor Green -BackgroundColor DarkGreen
 } catch {
     Write-Host "[ERROR] Git push failed! Please check your network and GitHub credentials." -ForegroundColor Red
