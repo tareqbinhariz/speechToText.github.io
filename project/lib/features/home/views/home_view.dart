@@ -100,8 +100,8 @@ class HomeView extends GetView<HomeController> {
                   text: controller.isArabic.value ? 'ميكروفون مباشر' : 'Live Mic',
                 ),
                 Tab(
-                  icon: const Icon(Icons.audio_file_rounded),
-                  text: controller.isArabic.value ? 'تحميل ملف صوتي' : 'Upload Audio',
+                  icon: const Icon(Icons.video_file_rounded),
+                  text: controller.isArabic.value ? 'رفع ملف' : 'Upload Media',
                 ),
               ],
               indicatorColor: Colors.blueAccent,

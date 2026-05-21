@@ -9,12 +9,13 @@ class TranscriptStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<HomeController>();
-    final text = ctrl.textController.text;
-    final wordCount = text.isEmpty ? 0 : text.trim().split(RegExp(r'\s+')).length;
-    final charCount = text.length;
-    final readTime = (wordCount / 200).ceil();
 
     return Obx(() {
+      ctrl.textVersion.value;
+      final text = ctrl.textController.text;
+      final wordCount = text.isEmpty ? 0 : text.trim().split(RegExp(r'\s+')).length;
+      final charCount = text.length;
+      final readTime = (wordCount / 200).ceil();
       final isDark = ctrl.isDarkMode.value;
       final borderThemeColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08);
 

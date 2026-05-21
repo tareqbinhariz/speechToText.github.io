@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,7 @@ class HomeController extends GetxController
     with GetSingleTickerProviderStateMixin {
   // Text editor
   final TextEditingController textController = TextEditingController();
+  final textVersion = 0.obs;
 
   // Reactive state
   final isArabic = true.obs;
@@ -170,7 +172,8 @@ class HomeController extends GetxController
       final result = await fp.FilePicker.pickFiles(
         type: fp.FileType.custom,
         allowedExtensions: [
-          'mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac', 'wma', 'amr'
+          'mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac', 'wma', 'amr',
+          'mp4', 'mov', 'avi', 'mkv', 'webm',
         ],
         withData: true,
       );
@@ -178,6 +181,7 @@ class HomeController extends GetxController
       if (result != null && result.files.isNotEmpty) {
         selectedFile(result.files.first);
         fileTranscriptionStatus('');
+        isTranscribingFile(false);
       }
     } catch (e) {
       statusMessage('Error picking file: $e');
@@ -269,6 +273,7 @@ class HomeController extends GetxController
       );
 
       textController.text = translatedText;
+      textVersion(textVersion.value + 1);
       transcriptIsArabic(!transcriptIsArabic.value);
       statusMessage(transcriptIsArabic.value
           ? '✅ تم الترجمة إلى العربية'
@@ -281,12 +286,19 @@ class HomeController extends GetxController
   }
 
   // ---- Action Helpers ----
-  void copyText() {
+  Future<void> copyText() async {
     if (textController.text.isNotEmpty) {
-      Clipboard.setData(ClipboardData(text: textController.text));
-      statusMessage(isArabic.value
-          ? '✅ تم نسخ النص بنجاح'
-          : '✅ Text copied to clipboard');
+      try {
+        await Clipboard.setData(ClipboardData(text: textController.text));
+        statusMessage(isArabic.value
+            ? '✅ تم نسخ النص بنجاح'
+            : '✅ Text copied to clipboard');
+        textVersion(textVersion.value + 1);
+      } catch (e) {
+        statusMessage(isArabic.value
+            ? '❌ فشل النسخ: $e'
+            : '❌ Copy failed: $e');
+      }
     } else {
       statusMessage(isArabic.value
           ? '⚠️ لا يوجد نص لنسخه'
@@ -296,10 +308,11 @@ class HomeController extends GetxController
 
   void clearText() {
     textController.clear();
+    textVersion(textVersion.value + 1);
     statusMessage(isArabic.value ? '🗑️ تم مسح النص' : '🗑️ Text cleared');
   }
 
-  void downloadTextFile() {
+  Future<void> downloadTextFile() async {
     final text = textController.text.trim();
     if (text.isEmpty) return;
 
@@ -309,12 +322,27 @@ class HomeController extends GetxController
     if (kIsWeb) {
       try {
         saveTextFileWeb(text, filename);
-        statusMessage('💾 Transcription downloaded successfully!');
+        statusMessage(isArabic.value
+            ? '💾 تم تحميل الملف'
+            : '💾 File downloaded');
       } catch (e) {
-        statusMessage('Failed to download: $e');
+        statusMessage(isArabic.value
+            ? '❌ فشل التحميل: $e'
+            : '❌ Download failed: $e');
       }
     } else {
-      copyText();
+      try {
+        final dir = Directory.systemTemp;
+        final file = File('${dir.path}/$filename');
+        await file.writeAsString(text);
+        statusMessage(isArabic.value
+            ? '💾 تم الحفظ في مجلد التنزيلات'
+            : '💾 Saved successfully');
+      } catch (e) {
+        statusMessage(isArabic.value
+            ? '❌ فشل الحفظ: $e'
+            : '❌ Save failed: $e');
+      }
     }
   }
 
@@ -337,6 +365,7 @@ class HomeController extends GetxController
     textController.selection = TextSelection.fromPosition(
       TextPosition(offset: textController.text.length),
     );
+    textVersion(textVersion.value + 1);
   }
 
   void showSettingsDialog() {

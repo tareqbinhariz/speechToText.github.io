@@ -50,16 +50,16 @@ class AudioUploadTab extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         ctrl.isArabic.value
-                            ? 'اسحب الملف الصوتي هنا أو انقر للاختيار'
-                            : 'Drag & drop audio file or click to select',
+                            ? 'اسحب الملف هنا أو انقر للاختيار'
+                            : 'Drag & drop file or click to select',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         ctrl.isArabic.value
-                            ? 'يدعم صيغ MP3, WAV, M4A, OGG, FLAC'
-                            : 'Supports MP3, WAV, M4A, OGG, FLAC formats',
+                            ? 'يدعم الصوت (MP3, WAV, M4A) والفيديو (MP4, MOV, MKV)'
+                            : 'Supports audio (MP3, WAV, M4A) and video (MP4, MOV, MKV)',
                         style: TextStyle(color: textSecondary, fontSize: 12),
                       ),
                     ],
@@ -99,16 +99,31 @@ class AudioUploadTab extends StatelessWidget {
                         style: TextStyle(color: textSecondary, fontSize: 13),
                       ),
                       const SizedBox(height: 12),
-                      TextButton.icon(
-                        onPressed: () {
-                          ctrl.selectedFile(null);
-                          ctrl.fileTranscriptionStatus('');
-                        },
-                        icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.redAccent),
-                        label: Text(
-                          ctrl.isArabic.value ? 'تغيير الملف' : 'Change File',
-                          style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton.icon(
+                            onPressed: ctrl.pickAudioFile,
+                            icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.blueAccent),
+                            label: Text(
+                              ctrl.isArabic.value ? 'تغيير الملف' : 'Change File',
+                              style: const TextStyle(color: Colors.blueAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () {
+                              ctrl.selectedFile(null);
+                              ctrl.fileTranscriptionStatus('');
+                              ctrl.isTranscribingFile(false);
+                            },
+                            icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                            label: Text(
+                              ctrl.isArabic.value ? 'حذف' : 'Delete',
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -190,8 +205,8 @@ class AudioUploadTab extends StatelessWidget {
                 : const Icon(Icons.rocket_launch_rounded, size: 18),
             label: Text(
               ctrl.isTranscribingFile.value
-                  ? (ctrl.isArabic.value ? 'جاري النسخ حالياً...' : 'Transcribing...')
-                  : (ctrl.isArabic.value ? 'ابدأ النسخ الذكي' : 'Start Smart Transcription'),
+                  ? (ctrl.isArabic.value ? 'جاري المعالجة...' : 'Processing...')
+                  : (ctrl.isArabic.value ? 'ابدأ النسخ' : 'Start Transcription'),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,

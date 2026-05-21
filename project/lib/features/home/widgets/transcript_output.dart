@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:speech_to_text_alsady_web/features/home/controllers/home_controller.dart';
-import 'transcript_stats.dart';
+import 'status_banner.dart';
 
 class TranscriptOutput extends StatelessWidget {
   const TranscriptOutput({super.key});
@@ -10,6 +10,7 @@ class TranscriptOutput extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.find<HomeController>();
     return Obx(() {
+      ctrl.textVersion.value;
       final isDark = ctrl.isDarkMode.value;
 
       return Column(
@@ -97,9 +98,9 @@ class TranscriptOutput extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          const TranscriptStats(),
+          const StatusBanner(),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           Row(
             children: [

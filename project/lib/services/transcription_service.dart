@@ -22,6 +22,16 @@ class TranscriptionService {
         return 'audio/x-ms-wma';
       case 'amr':
         return 'audio/amr';
+      case 'mp4':
+        return 'video/mp4';
+      case 'mov':
+        return 'video/quicktime';
+      case 'avi':
+        return 'video/x-msvideo';
+      case 'mkv':
+        return 'video/x-matroska';
+      case 'webm':
+        return 'video/webm';
       default:
         return 'audio/mp3'; // Fallback
     }
