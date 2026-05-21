@@ -120,6 +120,30 @@ class TranscriptOutput extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
+                  onPressed: ctrl.textController.text.isNotEmpty ? ctrl.summarizeSelectedText : null,
+                  icon: ctrl.isSummarizing.value
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.auto_awesome_rounded, size: 18),
+                  label: Text(
+                    ctrl.isSummarizing.value
+                        ? (ctrl.isArabic.value ? 'جاري التلخيص...' : 'Summarizing...')
+                        : (ctrl.isArabic.value ? 'تلخيص' : 'Summarize'),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
                   onPressed: ctrl.textController.text.isNotEmpty ? ctrl.downloadTextFile : null,
                   icon: const Icon(Icons.download_rounded, size: 18),
                   label: Text(ctrl.isArabic.value ? 'حفظ كملف' : 'Export File'),

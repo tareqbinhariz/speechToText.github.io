@@ -35,6 +35,7 @@ class HomeController extends GetxController
   fp.PlatformFile? _selectedFileValue;
   final hasSelectedFile = false.obs;
   final isTranscribingFile = false.obs;
+  final isPickingFile = false.obs;
   final fileTranscriptionStatus = ''.obs;
   final transcriptionProgress = 0.0.obs;
 
@@ -47,6 +48,7 @@ class HomeController extends GetxController
   late TabController tabController;
   final isDarkMode = true.obs;
   final isTranslating = false.obs;
+  final isSummarizing = false.obs;
 
   String get effectiveApiKey {
     if (geminiApiKey.value.trim().isNotEmpty) {
@@ -119,7 +121,7 @@ class HomeController extends GetxController
 
     _audioCapture = capture;
     isRecording(true);
-    statusMessage(isArabic.value ? '🔴 جاري التسجيل...' : '🔴 Recording...');
+    statusMessage('');
 
     try {
       await capture.start();
@@ -140,17 +142,12 @@ class HomeController extends GetxController
 
     isRecording(false);
     isProcessingRecording(true);
-    statusMessage(isArabic.value
-        ? '🧠 جاري معالجة التسجيل الصوتي...'
-        : '🧠 Processing recorded audio...');
+    statusMessage('');
 
     try {
       final audioBytes = await capture.stop();
 
       if (audioBytes.isEmpty) {
-        statusMessage(isArabic.value
-            ? '❌ لم يتم تسجيل أي صوت'
-            : '❌ No audio recorded');
         isProcessingRecording(false);
         return;
       }
@@ -174,13 +171,13 @@ class HomeController extends GetxController
       _appendText(resultText);
       transcriptIsArabic(isArabic.value);
       statusMessage(isArabic.value
-          ? '✅ تمت معالجة التسجيل بنجاح'
-          : '✅ Recording transcribed successfully');
+          ? '✅ تمت المعالجة'
+          : '✅ Done');
     } catch (e) {
       debugPrint("Recording processing error: $e");
       statusMessage(isArabic.value
-          ? '❌ فشلت معالجة التسجيل: $e'
-          : '❌ Failed to process recording: $e');
+          ? '❌ فشلت المعالجة'
+          : '❌ Processing failed');
     } finally {
       isProcessingRecording(false);
       capture.dispose();
@@ -191,6 +188,7 @@ class HomeController extends GetxController
   // ---- File Upload ----
 
   Future<void> pickAudioFile() async {
+    isPickingFile(true);
     try {
       final result = await fp.FilePicker.pickFiles(
         type: fp.FileType.custom,
@@ -209,6 +207,8 @@ class HomeController extends GetxController
       }
     } catch (e) {
       statusMessage('Error picking file: $e');
+    } finally {
+      isPickingFile(false);
     }
   }
 
@@ -217,9 +217,6 @@ class HomeController extends GetxController
     hasSelectedFile(false);
     fileTranscriptionStatus('');
     isTranscribingFile(false);
-    statusMessage(isArabic.value
-        ? '🗑️ تم حذف الملف'
-        : '🗑️ File deleted');
   }
 
   fp.PlatformFile? get selectedFile => _selectedFileValue;
@@ -263,10 +260,10 @@ class HomeController extends GetxController
         modelName: geminiModel.value,
         customInstructions: customInstructions.value,
         targetLanguage: isArabic.value ? 'ar' : 'en',
-        onFallback: (fallbackModel, error) {
+        onFallback: (_, __) {
           fileTranscriptionStatus(isArabic.value
-              ? '⚠️ جاري استخدام النموذج الاحتياطي: $fallbackModel...'
-              : '⚠️ Using fallback model: $fallbackModel...');
+              ? '⚠️ جاري التبديل لنموذج آخر...'
+              : '⚠️ Switching to another model...');
         },
       );
 
@@ -301,10 +298,10 @@ class HomeController extends GetxController
         targetLanguage: targetLang,
         apiKey: effectiveApiKey,
         modelName: geminiModel.value,
-        onFallback: (fallbackModel, error) {
+        onFallback: (_, __) {
           statusMessage(isArabic.value
-              ? '⚠️ جاري تجربة نموذج ترجمة احتياطي: $fallbackModel...'
-              : '⚠️ Trying fallback translation model: $fallbackModel...');
+              ? '⚠️ جاري التبديل لنموذج آخر...'
+              : '⚠️ Switching to another model...');
         },
       );
 
@@ -318,6 +315,42 @@ class HomeController extends GetxController
       statusMessage('❌ Translation failed: $e');
     } finally {
       isTranslating(false);
+    }
+  }
+
+  // ---- Summarize ----
+
+  Future<void> summarizeSelectedText() async {
+    final text = textController.text.trim();
+    if (text.isEmpty) return;
+    if (effectiveApiKey.isEmpty) {
+      showSettingsDialog();
+      return;
+    }
+
+    isSummarizing(true);
+    statusMessage(isArabic.value
+        ? '🧠 جاري التلخيص...'
+        : '🧠 Summarizing...');
+
+    try {
+      final summary = await TranscriptionService.summarizeText(
+        text: text,
+        apiKey: effectiveApiKey,
+        modelName: geminiModel.value,
+        customInstructions: customInstructions.value,
+      );
+
+      _appendText('\n--- ${isArabic.value ? "ملخص" : "Summary"} ---\n$summary');
+      statusMessage(isArabic.value
+          ? '✅ تم التلخيص بنجاح'
+          : '✅ Summary added');
+    } catch (e) {
+      statusMessage(isArabic.value
+          ? '❌ فشل التلخيص: $e'
+          : '❌ Summarization failed: $e');
+    } finally {
+      isSummarizing(false);
     }
   }
 

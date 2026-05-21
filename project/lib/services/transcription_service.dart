@@ -55,17 +55,20 @@ class TranscriptionService {
       final mimeType = getMimeType(fileName);
       final audioPart = DataPart(mimeType, fileBytes);
 
-      // Create a rich prompt for transcription
       String prompt = 'You are an expert speech-to-text transcriber. '
-          'Transcribe the audio file exactly as spoken. Do not add any conversational commentary, introductory text, or concluding notes. '
+          'Transcribe the audio exactly as spoken, but intelligently correct minor mispronunciations, '
+          'slurred words, or unclear audio to their proper spelling. '
+          'For example, if the speaker says "ello" in a context that clearly means "hello", write "hello". '
+          'If they say "gonna" in casual speech, write "going to" (normalize casual speech to proper form). '
+          'Do NOT add any conversational commentary, introductory text, or concluding notes. '
           'Return only the raw transcription text.';
 
       if (targetLanguage == 'ar') {
-        prompt += ' The audio is in Arabic. Please transcribe it using proper Arabic grammar and punctuation.';
+        prompt += ' The audio is in Arabic. Please transcribe it using proper Arabic grammar and punctuation, correcting any unclear words to their proper form.';
       } else if (targetLanguage == 'en') {
-        prompt += ' The audio is in English. Please transcribe it using proper English spelling, capitalization, and punctuation.';
+        prompt += ' The audio is in English. Please transcribe it using proper English spelling, capitalization, and punctuation, correcting unclear words to their proper form.';
       } else {
-        prompt += ' Detect the language spoken (primarily Arabic or English) and transcribe it accurately in that language with correct punctuation.';
+        prompt += ' Detect the language spoken (primarily Arabic or English) and transcribe it accurately in that language with correct punctuation, correcting unclear words.';
       }
 
       if (customInstructions != null && customInstructions.trim().isNotEmpty) {
@@ -74,34 +77,7 @@ class TranscriptionService {
 
       final textPart = TextPart(prompt);
 
-      // Build an ordered, unique list of fallback models
-      final baseModels = [
-        'gemini-2.5-flash',
-        'gemini-3.5-flash',
-        'gemini-3.1-flash-lite',
-        'gemini-3-flash-preview',
-        'gemini-2.0-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-2.0-flash-lite',
-        'gemini-flash-latest',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-8b',
-        'gemini-3.1-pro-preview',
-        'gemini-2.5-pro',
-        'gemini-pro-latest',
-        'gemini-1.5-pro',
-        'gemini-flash-lite-latest',
-      ];
-
-      final modelsToTry = <String>[];
-      if (modelName.isNotEmpty) {
-        modelsToTry.add(modelName);
-      }
-      for (final model in baseModels) {
-        if (!modelsToTry.contains(model)) {
-          modelsToTry.add(model);
-        }
-      }
+      final modelsToTry = _buildModelList(modelName);
 
       Object? lastError;
 
@@ -165,34 +141,7 @@ class TranscriptionService {
     if (text.isEmpty) return '';
 
     try {
-      // Build an ordered, unique list of fallback models
-      final baseModels = [
-        'gemini-2.5-flash',
-        'gemini-3.5-flash',
-        'gemini-3.1-flash-lite',
-        'gemini-3-flash-preview',
-        'gemini-2.0-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-2.0-flash-lite',
-        'gemini-flash-latest',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-8b',
-        'gemini-3.1-pro-preview',
-        'gemini-2.5-pro',
-        'gemini-pro-latest',
-        'gemini-1.5-pro',
-        'gemini-flash-lite-latest',
-      ];
-
-      final modelsToTry = <String>[];
-      if (modelName.isNotEmpty) {
-        modelsToTry.add(modelName);
-      }
-      for (final model in baseModels) {
-        if (!modelsToTry.contains(model)) {
-          modelsToTry.add(model);
-        }
-      }
+      final modelsToTry = _buildModelList(modelName);
 
       Object? lastError;
 
@@ -242,5 +191,85 @@ class TranscriptionService {
     } catch (e) {
       throw Exception('Translation failed: ${e.toString()}');
     }
+  }
+
+  /// Summarize transcribed text.
+  static Future<String> summarizeText({
+    required String text,
+    required String apiKey,
+    String modelName = 'gemini-3.5-flash',
+    String? customInstructions,
+    void Function()? onFallback,
+  }) async {
+    if (apiKey.isEmpty) {
+      throw Exception('API Key is empty.');
+    }
+    if (text.isEmpty) return '';
+
+    final modelsToTry = _buildModelList(modelName);
+
+    Object? lastError;
+
+    for (int i = 0; i < modelsToTry.length; i++) {
+      final currentModel = modelsToTry[i];
+      try {
+        final model = GenerativeModel(
+          model: currentModel,
+          apiKey: apiKey,
+        );
+
+        String prompt = 'Summarize the following text concisively. '
+            'Capture the key points and main ideas. '
+            'Return only the summary without any introductory or concluding commentary.';
+
+        if (customInstructions != null && customInstructions.trim().isNotEmpty) {
+          prompt += '\n\nAdditional guidelines:\n$customInstructions';
+        }
+
+        prompt += '\n\nText:\n$text';
+
+        final response = await model.generateContent([Content.text(prompt)]);
+
+        final summary = response.text;
+        if (summary != null && summary.isNotEmpty) {
+          return summary.trim();
+        }
+      } catch (e) {
+        lastError = e;
+        final errorStr = e.toString();
+
+        if (errorStr.contains('API_KEY_INVALID') ||
+            errorStr.contains('API key not valid') ||
+            errorStr.contains('invalid API key') ||
+            errorStr.contains('403')) {
+          throw Exception('Summarization failed due to API Key issue: $e');
+        }
+
+        debugPrint('Summary Model $currentModel failed: $errorStr. Cascading...');
+        if (i < modelsToTry.length - 1) {
+          onFallback?.call();
+          await Future.delayed(const Duration(milliseconds: 1000));
+          continue;
+        }
+      }
+    }
+
+    throw Exception('Summarization failed. (Details: $lastError)');
+  }
+
+  static List<String> _buildModelList(String preferred) {
+    const base = [
+      'gemini-3.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-2.5-pro',
+      'gemini-3.1-pro-preview',
+    ];
+    final result = <String>[];
+    if (preferred.isNotEmpty) result.add(preferred);
+    for (final m in base) {
+      if (!result.contains(m)) result.add(m);
+    }
+    return result;
   }
 }

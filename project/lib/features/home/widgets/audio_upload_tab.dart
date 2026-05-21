@@ -17,7 +17,24 @@ class AudioUploadTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (!hasFile) ...[
+          if (ctrl.isPickingFile.value) ...[
+            const Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    ),
+                    SizedBox(height: 16),
+                    Text('Opening file picker...', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+            ),
+          ] else if (!hasFile) ...[
             Expanded(
               child: InkWell(
                 onTap: ctrl.pickAudioFile,

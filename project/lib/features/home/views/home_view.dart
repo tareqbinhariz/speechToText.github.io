@@ -57,7 +57,7 @@ class HomeView extends GetView<HomeController> {
               ),
               IconButton(
                 icon: const Icon(Icons.help_outline_rounded),
-                onPressed: _showTipsDialog,
+                onPressed: () => _showTipsDialog(context),
                 tooltip: controller.isArabic.value ? 'مساعدة' : 'Help',
               ),
               const SizedBox(width: 8),
@@ -173,9 +173,10 @@ class HomeView extends GetView<HomeController> {
     });
   }
 
-  void _showTipsDialog() {
-    Get.dialog(
-      AlertDialog(
+  void _showTipsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
         title: Text(controller.isArabic.value ? '💡 نصائح للحصول على أدق نتائج' : '💡 Tips for Best Accuracy'),
         content: SingleChildScrollView(
           child: Column(
@@ -200,7 +201,7 @@ class HomeView extends GetView<HomeController> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(context).pop(),
             child: Text(controller.isArabic.value ? 'حسناً فهمت' : 'Got it'),
           ),
         ],
