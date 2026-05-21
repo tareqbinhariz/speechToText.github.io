@@ -8,6 +8,7 @@ class AudioCapture {
   AudioRecorder? _recorder;
   StreamSubscription<Uint8List>? _subscription;
   final List<Uint8List> _chunks = [];
+  InputDevice? _selectedDevice;
   static const int _sampleRate = 44100;
   static const int _numChannels = 1;
   static const int _bitsPerSample = 16;
@@ -19,13 +20,30 @@ class AudioCapture {
     return ok;
   }
 
+  Future<List<InputDevice>> listDevices() async {
+    final r = AudioRecorder();
+    final devices = await r.listInputDevices();
+    await r.dispose();
+    final seen = <String>{};
+    final unique = <InputDevice>[];
+    for (final d in devices) {
+      if (seen.add(d.id)) unique.add(d);
+    }
+    return unique;
+  }
+
+  void selectDevice(InputDevice? device) {
+    _selectedDevice = device;
+  }
+
   Future<void> start() async {
     _chunks.clear();
     final r = AudioRecorder();
-    final stream = await r.startStream(const RecordConfig(
+    final stream = await r.startStream(RecordConfig(
       encoder: AudioEncoder.pcm16bits,
       numChannels: _numChannels,
       sampleRate: _sampleRate,
+      device: _selectedDevice,
     ));
     _subscription = stream.listen((data) => _chunks.add(data));
     _recorder = r;
@@ -58,49 +76,34 @@ class AudioCapture {
     _chunks.clear();
   }
 
-  /// Prefixes raw PCM16 little-endian data with a WAVE header.
   static Uint8List _wrapWav(Uint8List pcmData) {
     final dataSize = pcmData.length;
     final fileSize = 36 + dataSize;
     final result = Uint8List(44 + dataSize);
     final b = ByteData.view(result.buffer);
 
-    // RIFF header
-    b.setUint8(0, 0x52); // 'R'
-    b.setUint8(1, 0x49); // 'I'
-    b.setUint8(2, 0x46); // 'F'
-    b.setUint8(3, 0x46); // 'F'
+    b.setUint8(0, 0x52); b.setUint8(1, 0x49);
+    b.setUint8(2, 0x46); b.setUint8(3, 0x46);
     b.setUint32(4, fileSize, Endian.little);
 
-    // WAVE header
-    b.setUint8(8, 0x57);  // 'W'
-    b.setUint8(9, 0x41);  // 'A'
-    b.setUint8(10, 0x56); // 'V'
-    b.setUint8(11, 0x45); // 'E'
+    b.setUint8(8, 0x57);  b.setUint8(9, 0x41);
+    b.setUint8(10, 0x56); b.setUint8(11, 0x45);
 
-    // fmt chunk
-    b.setUint8(12, 0x66); // 'f'
-    b.setUint8(13, 0x6D); // 'm'
-    b.setUint8(14, 0x74); // 't'
-    b.setUint8(15, 0x20); // ' '
-    b.setUint32(16, 16, Endian.little); // chunk size
-    b.setUint16(20, 1, Endian.little);  // PCM format
+    b.setUint8(12, 0x66); b.setUint8(13, 0x6D);
+    b.setUint8(14, 0x74); b.setUint8(15, 0x20);
+    b.setUint32(16, 16, Endian.little);
+    b.setUint16(20, 1, Endian.little);
     b.setUint16(22, _numChannels, Endian.little);
     b.setUint32(24, _sampleRate, Endian.little);
     b.setUint32(28, _sampleRate * _numChannels * _bitsPerSample ~/ 8, Endian.little);
     b.setUint16(32, _numChannels * _bitsPerSample ~/ 8, Endian.little);
     b.setUint16(34, _bitsPerSample, Endian.little);
 
-    // data chunk
-    b.setUint8(36, 0x64); // 'd'
-    b.setUint8(37, 0x61); // 'a'
-    b.setUint8(38, 0x74); // 't'
-    b.setUint8(39, 0x61); // 'a'
+    b.setUint8(36, 0x64); b.setUint8(37, 0x61);
+    b.setUint8(38, 0x74); b.setUint8(39, 0x61);
     b.setUint32(40, dataSize, Endian.little);
 
-    // PCM data
     result.setRange(44, 44 + dataSize, pcmData);
-
     return result;
   }
 }

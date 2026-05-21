@@ -121,6 +121,48 @@ class LiveMicTab extends StatelessWidget {
             ),
           ],
 
+          // Device selector
+          if (ctrl.availableDevices.isNotEmpty && !ctrl.isRecording.value) ...[
+            const SizedBox(height: 16),
+            Obx(() {
+              final devices = ctrl.availableDevices;
+              return SizedBox(
+                width: 260,
+                child: DropdownButtonFormField<String>(
+                  initialValue: ctrl.selectedDeviceId.value.isNotEmpty
+                      ? ctrl.selectedDeviceId.value
+                      : null,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: ctrl.isArabic.value ? 'جهاز الإدخال' : 'Input Device',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Text(ctrl.isArabic.value ? 'افتراضي' : 'Default'),
+                    ),
+                    for (final d in devices)
+                      DropdownMenuItem(
+                        value: d.id,
+                        child: Text(
+                          d.label.isNotEmpty ? d.label : d.id,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (val) {
+                    ctrl.selectedDeviceId(val ?? '');
+                  },
+                ),
+              );
+            }),
+          ],
+
           const SizedBox(height: 20),
 
           // Status banner

@@ -51,7 +51,9 @@ class HomeView extends GetView<HomeController> {
                   controller.isDarkMode(!isDark);
                   controller.saveThemePreference(!isDark);
                 },
-                tooltip: isDark ? 'Light Mode' : 'Dark Mode',
+                tooltip: controller.isArabic.value
+                    ? (isDark ? 'الوضع المضيء' : 'الوضع المظلم')
+                    : (isDark ? 'Light Mode' : 'Dark Mode'),
               ),
               IconButton(
                 icon: const Icon(Icons.help_outline_rounded),

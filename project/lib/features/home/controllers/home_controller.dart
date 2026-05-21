@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart' as fp;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:record/record.dart';
 import 'package:speech_to_text_alsady_web/services/audio_recorder/audio_recorder.dart';
 import 'package:speech_to_text_alsady_web/services/transcription_service.dart';
 import 'package:speech_to_text_alsady_web/utils/file_saver/file_saver.dart';
@@ -27,9 +28,12 @@ class HomeController extends GetxController
   AudioCapture? _audioCapture;
   final isRecording = false.obs;
   final isProcessingRecording = false.obs;
+  final availableDevices = <InputDevice>[].obs;
+  final selectedDeviceId = ''.obs;
 
   // File Upload State
-  final selectedFile = Rx<fp.PlatformFile?>(null);
+  fp.PlatformFile? _selectedFileValue;
+  final hasSelectedFile = false.obs;
   final isTranscribingFile = false.obs;
   final fileTranscriptionStatus = ''.obs;
   final transcriptionProgress = 0.0.obs;
@@ -58,6 +62,7 @@ class HomeController extends GetxController
     tabController = TabController(length: 2, vsync: this);
     transcriptIsArabic(isArabic.value);
     loadSettings();
+    refreshDevices();
   }
 
   @override
@@ -83,6 +88,17 @@ class HomeController extends GetxController
 
   // ---- Mic Recording ----
 
+  Future<void> refreshDevices() async {
+    final capture = AudioCapture();
+    final ok = await capture.hasPermission();
+    if (!ok) return;
+    final devices = await capture.listDevices();
+    availableDevices.assignAll(devices);
+    if (selectedDeviceId.value.isEmpty && devices.isNotEmpty) {
+      selectedDeviceId(devices.first.id);
+    }
+  }
+
   Future<void> startRecording() async {
     final capture = AudioCapture();
     final hasPermission = await capture.hasPermission();
@@ -93,6 +109,13 @@ class HomeController extends GetxController
           : '❌ Microphone permission required');
       return;
     }
+
+    await refreshDevices();
+
+    final device = availableDevices.firstWhereOrNull(
+      (d) => d.id == selectedDeviceId.value,
+    );
+    capture.selectDevice(device);
 
     _audioCapture = capture;
     isRecording(true);
@@ -179,7 +202,8 @@ class HomeController extends GetxController
       );
 
       if (result != null && result.files.isNotEmpty) {
-        selectedFile(result.files.first);
+        _selectedFileValue = result.files.first;
+        hasSelectedFile(true);
         fileTranscriptionStatus('');
         isTranscribingFile(false);
       }
@@ -188,14 +212,26 @@ class HomeController extends GetxController
     }
   }
 
+  void clearSelectedFile() {
+    _selectedFileValue = null;
+    hasSelectedFile(false);
+    fileTranscriptionStatus('');
+    isTranscribingFile(false);
+    statusMessage(isArabic.value
+        ? '🗑️ تم حذف الملف'
+        : '🗑️ File deleted');
+  }
+
+  fp.PlatformFile? get selectedFile => _selectedFileValue;
+
   Future<void> transcribeSelectedFile() async {
-    if (selectedFile.value == null) return;
+    if (_selectedFileValue == null) return;
     if (effectiveApiKey.isEmpty) {
       showSettingsDialog();
       return;
     }
 
-    final bytes = selectedFile.value!.bytes;
+    final bytes = _selectedFileValue!.bytes;
     if (bytes == null) {
       fileTranscriptionStatus('❌ Failed to read file bytes.');
       return;
@@ -222,7 +258,7 @@ class HomeController extends GetxController
 
       final resultText = await TranscriptionService.transcribeAudio(
         fileBytes: bytes,
-        fileName: selectedFile.value!.name,
+        fileName: _selectedFileValue!.name,
         apiKey: effectiveApiKey,
         modelName: geminiModel.value,
         customInstructions: customInstructions.value,

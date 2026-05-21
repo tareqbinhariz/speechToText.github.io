@@ -9,7 +9,7 @@ class AudioUploadTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.find<HomeController>();
     return Obx(() {
-      final hasFile = ctrl.selectedFile.value != null;
+      final hasFile = ctrl.hasSelectedFile.value;
       final isDark = ctrl.isDarkMode.value;
       final textSecondary = isDark ? Colors.white60 : Colors.black54;
 
@@ -85,7 +85,7 @@ class AudioUploadTab extends StatelessWidget {
                       const Icon(Icons.audio_file_rounded, size: 48, color: Colors.blueAccent),
                       const SizedBox(height: 12),
                       Text(
-                        ctrl.selectedFile.value!.name,
+                        ctrl.selectedFile?.name ?? '',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -93,9 +93,11 @@ class AudioUploadTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        ctrl.isArabic.value
-                            ? 'الحجم: ${(ctrl.selectedFile.value!.size / 1024 / 1024).toStringAsFixed(2)} ميجابايت'
-                            : 'Size: ${(ctrl.selectedFile.value!.size / 1024 / 1024).toStringAsFixed(2)} MB',
+                        ctrl.selectedFile != null
+                            ? (ctrl.isArabic.value
+                                ? 'الحجم: ${(ctrl.selectedFile!.size / 1024 / 1024).toStringAsFixed(2)} ميجابايت'
+                                : 'Size: ${(ctrl.selectedFile!.size / 1024 / 1024).toStringAsFixed(2)} MB')
+                            : '',
                         style: TextStyle(color: textSecondary, fontSize: 13),
                       ),
                       const SizedBox(height: 12),
@@ -112,11 +114,7 @@ class AudioUploadTab extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
-                            onPressed: () {
-                              ctrl.selectedFile(null);
-                              ctrl.fileTranscriptionStatus('');
-                              ctrl.isTranscribingFile(false);
-                            },
+                            onPressed: ctrl.clearSelectedFile,
                             icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
                             label: Text(
                               ctrl.isArabic.value ? 'حذف' : 'Delete',
