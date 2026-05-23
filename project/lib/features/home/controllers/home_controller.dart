@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text_alsady_web/services/audio_recorder/audio_recorder.dart';
 import 'package:speech_to_text_alsady_web/services/transcription_service.dart';
+import 'package:speech_to_text_alsady_web/utils/audio_preview/audio_preview.dart';
 import 'package:speech_to_text_alsady_web/utils/file_saver/file_saver.dart';
 
 class HomeController extends GetxController
@@ -30,6 +31,8 @@ class HomeController extends GetxController
   final isProcessingRecording = false.obs;
   final availableDevices = <InputDevice>[].obs;
   final selectedDeviceId = ''.obs;
+  Uint8List? _lastRecordingBytes;
+  final hasAudioPreview = false.obs;
 
   // File Upload State
   fp.PlatformFile? _selectedFileValue;
@@ -41,7 +44,7 @@ class HomeController extends GetxController
 
   // Settings
   final geminiApiKey = ''.obs;
-  final geminiModel = 'gemini-2.5-flash'.obs;
+  final geminiModel = 'gemini-2.5-pro'.obs;
   final customInstructions = ''.obs;
 
   // UI state
@@ -78,7 +81,7 @@ class HomeController extends GetxController
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     geminiApiKey(prefs.getString('gemini_api_key') ?? '');
-    geminiModel(prefs.getString('gemini_model') ?? 'gemini-2.5-flash');
+    geminiModel(prefs.getString('gemini_model') ?? 'gemini-2.5-pro');
     customInstructions(prefs.getString('transcription_instructions') ?? '');
     isDarkMode(prefs.getBool('is_dark_mode') ?? true);
   }
@@ -152,6 +155,9 @@ class HomeController extends GetxController
         return;
       }
 
+      _lastRecordingBytes = audioBytes;
+      hasAudioPreview(true);
+
       if (effectiveApiKey.isEmpty) {
         showSettingsDialog();
         isProcessingRecording(false);
@@ -159,6 +165,7 @@ class HomeController extends GetxController
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
+
       final resultText = await TranscriptionService.transcribeAudio(
         fileBytes: audioBytes,
         fileName: 'recording_$timestamp.wav',
@@ -234,24 +241,22 @@ class HomeController extends GetxController
       return;
     }
 
+    // Warn if file is very large (inline API limit ~15MB)
+    const maxInlineSize = 15 * 1024 * 1024;
+    if (bytes.length > maxInlineSize) {
+      fileTranscriptionStatus('⚠️ File too large (${(bytes.length / 1024 / 1024).toStringAsFixed(1)}MB). Try a shorter clip.');
+      return;
+    }
+
     isTranscribingFile(true);
     transcriptionProgress(0.1);
-    fileTranscriptionStatus(isArabic.value
-        ? '📂 قراءة الملف الصوتي...'
-        : '📂 Reading file bytes...');
 
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 300));
       transcriptionProgress(0.3);
-      fileTranscriptionStatus(isArabic.value
-          ? '🌐 جاري الاتصال...'
-          : '🌐 Connecting to API...');
 
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 300));
       transcriptionProgress(0.6);
-      fileTranscriptionStatus(isArabic.value
-          ? '🧠 تحليل ونطق الملف الصوتي...'
-          : '🧠 Transcribing and analyzing speech...');
 
       final resultText = await TranscriptionService.transcribeAudio(
         fileBytes: bytes,
@@ -278,6 +283,16 @@ class HomeController extends GetxController
     } finally {
       isTranscribingFile(false);
     }
+  }
+
+  // ---- Audio Preview ----
+
+  void playPreview() {
+    playAudioPreview(_lastRecordingBytes);
+  }
+
+  void playPreviewFromFile() {
+    playAudioPreview(_selectedFileValue?.bytes);
   }
 
   // ---- Translate ----

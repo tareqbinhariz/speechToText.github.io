@@ -19,7 +19,7 @@ class LiveMicTab extends StatelessWidget {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Waveform or loading indicator
+          // Waveform / preview / loading indicator
           Expanded(
             child: Center(child: Obx(() {
               if (ctrl.isProcessingRecording.value) {
@@ -43,6 +43,9 @@ class LiveMicTab extends StatelessWidget {
                     ),
                   ],
                 );
+              }
+              if (ctrl.hasAudioPreview.value && !ctrl.isRecording.value) {
+                return _AudioPreviewCard();
               }
               return WaveformAnimation(
                 isRecording: ctrl.isRecording.value,
@@ -170,5 +173,60 @@ class LiveMicTab extends StatelessWidget {
         ],
       );
     });
+  }
+}
+
+class _AudioPreviewCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = Get.find<HomeController>();
+    final isDark = ctrl.isDarkMode.value;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black12 : Colors.grey[50],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.greenAccent.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check_circle_outline, size: 36, color: Colors.green),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            ctrl.isArabic.value ? 'التسجيل جاهز' : 'Recording Ready',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            ctrl.isArabic.value ? 'اضغط لتشغيل التسجيل' : 'Tap to preview',
+            style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: ctrl.playPreview,
+              icon: const Icon(Icons.play_arrow_rounded, size: 20),
+              label: Text(ctrl.isArabic.value ? 'تشغيل' : 'Play'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

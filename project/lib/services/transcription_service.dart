@@ -55,11 +55,13 @@ class TranscriptionService {
       final mimeType = getMimeType(fileName);
       final audioPart = DataPart(mimeType, fileBytes);
 
-      String prompt = 'You are an expert speech-to-text transcriber. '
-          'Transcribe the audio exactly as spoken, but intelligently correct minor mispronunciations, '
+      final isVideo = mimeType.startsWith('video/');
+      String prompt = isVideo
+          ? 'This is a video file. Extract the audio track and transcribe it exactly as spoken. '
+          : 'Transcribe the audio exactly as spoken. ';
+      prompt += 'Intelligently correct minor mispronunciations, '
           'slurred words, or unclear audio to their proper spelling. '
           'For example, if the speaker says "ello" in a context that clearly means "hello", write "hello". '
-          'If they say "gonna" in casual speech, write "going to" (normalize casual speech to proper form). '
           'Do NOT add any conversational commentary, introductory text, or concluding notes. '
           'Return only the raw transcription text.';
 
@@ -259,11 +261,11 @@ class TranscriptionService {
 
   static List<String> _buildModelList(String preferred) {
     const base = [
+      'gemini-2.5-pro',
       'gemini-3.5-flash',
+      'gemini-3.1-pro-preview',
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
-      'gemini-2.5-pro',
-      'gemini-3.1-pro-preview',
     ];
     final result = <String>[];
     if (preferred.isNotEmpty) result.add(preferred);

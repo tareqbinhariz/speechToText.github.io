@@ -131,6 +131,15 @@ class AudioUploadTab extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
+                            onPressed: () => ctrl.playPreviewFromFile(),
+                            icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.green),
+                            label: Text(
+                              ctrl.isArabic.value ? 'تشغيل' : 'Play',
+                              style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
                             onPressed: ctrl.clearSelectedFile,
                             icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
                             label: Text(
